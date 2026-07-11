@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futuristic Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Fondo con gradientes orbitales futuristas */
+        body {
+            background-color: #030712;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+            background-attachment: fixed;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Estilo puro de Aeroglassmorphism */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.35);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px) saturate(140%);
+            -webkit-backdrop-filter: blur(12px) saturate(140%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Efecto hover interactivo */
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
+            transform: translateY(-4px);
+        }
+
+        /* Control de visibilidad para los botones de acción al hacer hover */
+        .action-buttons {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover .action-buttons {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .glass-card:hover .card-desc {
+            opacity: 0;
+            transform: translateY(-10px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="text-gray-200 min-h-screen flex flex-col justify-between">
+
+    <header class="relative w-full max-w-7xl mx-auto px-4 pt-12 pb-6">
+        <div class="glass-panel rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+            <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 rounded-full blur-[80px] pointer-events-none"></div>
+            
+            <div class="space-y-4 max-w-2xl relative z-10">
+                <span class="text-xs font-semibold tracking-widest text-indigo-400 uppercase bg-indigo-500/10 px-3.5 py-1.5 rounded-full border border-indigo-500/20">
+                    Sistema Operativo V1.0
+                </span>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400">
+                    Nexus Hub
+                </h1>
+                <p class="text-gray-400 text-sm md:text-base leading-relaxed">
+                    Tu portal descentralizado de recursos. Explora nuestra suite curada de herramientas de última generación, utilidades optimizadas y videojuegos experimentales.
+                </p>
+            </div>
+            
+            <div class="flex flex-wrap gap-3 relative z-10">
+                <a href="#juegos" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Juegos</a>
+                <a href="#utilidades" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Utilidades</a>
+                <a href="#herramientas" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Herramientas</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-4 py-8 space-y-16 flex-grow">
+
+        <section id="juegos" class="space-y-6">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
+                    <i data-lucide="gamepad-2" class="w-5 h-5"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-wide text-white">Juegos</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-xs text-indigo-400 font-mono">01 / ARCADE</span>
+                            <h3 class="text-lg font-bold text-white">Cyber Neon Runner</h3>
+                        </div>
+                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative h-16 flex items-center">
+                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
+                            Esquiva obstáculos en un entorno virtual procedural al ritmo de sintetizadores retrofuturistas.
+                        </p>
+                        
+                        <div class="action-buttons w-full flex gap-3 absolute">
+                            <button class="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 shadow-lg shadow-indigo-600/20">
+                                Jugar
+                            </button>
+                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">
+                                Descargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-xs text-indigo-400 font-mono">02 / ESTRATEGIA</span>
+                            <h3 class="text-lg font-bold text-white">Grid Commander</h3>
+                        </div>
+                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative h-16 flex items-center">
+                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
+                            Defiende el núcleo central de ciberamenazas en tiempo real en un tablero táctico holográfico.
+                        </p>
+                        <div class="action-buttons w-full flex gap-3 absolute">
+                            <button class="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all">
+                                Jugar
+                            </button>
+                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
+                                Descargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="utilidades" class="space-y-6">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-pink-400">
+                    <i data-lucide="sliders" class="w-5 h-5"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-wide text-white">Utilidades</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-xs text-pink-400 font-mono">SYSTEM</span>
+                            <h3 class="text-lg font-bold text-white">Compresor de Assets</h3>
+                        </div>
+                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                            <i data-lucide="file-archive" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative h-16 flex items-center">
+                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
+                            Optimiza imágenes y modelos 3D sin pérdida de calidad directamente en el navegador.
+                        </p>
+                        <div class="action-buttons w-full flex gap-3 absolute">
+                            <button class="flex-1 py-2 px-4 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-semibold transition-all">
+                                Lanzar
+                            </button>
+                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
+                                Descargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="herramientas" class="space-y-6">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
+                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-wide text-white">Herramientas</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <span class="text-xs text-emerald-400 font-mono">DEVELOPER</span>
+                            <h3 class="text-lg font-bold text-white">Generador JSON</h3>
+                        </div>
+                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                            <i data-lucide="code" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="relative h-16 flex items-center">
+                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
+                            Crea estructuras mock de datos JSON en segundos con plantillas inteligentes.
+                        </p>
+                        <div class="action-buttons w-full flex gap-3 absolute">
+                            <button class="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-all">
+                                Lanzar
+                            </button>
+                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
+                                Descargar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="w-full max-w-7xl mx-auto px-4 py-8 border-t border-white/5 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-gray-500">© 2026 Nexus Hub. Todos los derechos reservados.</p>
+        <div class="flex gap-4 text-xs text-gray-400">
+            <a href="#" class="hover:text-white transition">Privacidad</a>
+            <a href="#" class="hover:text-white transition">GitHub</a>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
