@@ -3,61 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Futuristic Portal</title>
+    <title>Xoring - Futuristic Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Fondo con gradientes orbitales futuristas */
         body {
-            background-color: #030712;
+            background-color: #02040a;
             background-image: 
-                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%);
+                radial-gradient(circle at 20% 30%, rgba(139, 5, 30, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 40%);
             background-attachment: fixed;
             font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
         }
 
-        /* Estilo puro de Aeroglassmorphism */
+        /* Aeroglassmorphism Base */
         .glass-panel {
-            background: rgba(17, 24, 39, 0.35);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            background: rgba(10, 12, 22, 0.4);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px) saturate(140%);
-            -webkit-backdrop-filter: blur(12px) saturate(140%);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        /* Contenedor de tarjeta con truco para el borde animado */
+        .card-container {
+            position: relative;
+            border-radius: 1.5rem;
+            padding: 1px; /* Espacio para que se vea el borde degradado trasero */
+            background: rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s;
+        }
+
+        /* El fondo animado que girará constantemente al hacer HOVER */
+        .card-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            /* Degradado solicitado: rojo vino, naranja rojizo, azul moradizo, rojizo azuliso, negrizo */
+            background: conic-gradient(
+                from 0deg,
+                #4c0519, /* Rojo Vino */
+                #ea580c, /* Naranja Rojizo */
+                #7c3aed, /* Azul Moradizo */
+                #b91c1c, /* Rojizo */
+                #1e1b4b, /* Azuliso Negrizo */
+                #4c0519
+            );
+            animation: rotate-gradient 4s linear infinite;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 0;
+        }
+
+        /* Al hacer hover, activamos el borde giratorio */
+        .card-container:hover::before {
+            opacity: 1;
+        }
+
+        .card-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(234, 88, 12, 0.15);
+        }
+
+        /* Cuerpo interno de la tarjeta (Tapa el centro del degradado) */
+        .glass-card-inner {
+            position: relative;
+            background: rgba(13, 16, 28, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: calc(1.5rem - 1px);
+            z-index: 1;
+            height: 100%;
+        }
+
+        @keyframes rotate-gradient {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Animación fluida de interfaz */
+        .action-layer {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Efecto hover interactivo */
-        .glass-card:hover {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(99, 102, 241, 0.4);
-            box-shadow: 0 0 30px rgba(99, 102, 241, 0.15);
-            transform: translateY(-4px);
-        }
-
-        /* Control de visibilidad para los botones de acción al hacer hover */
-        .action-buttons {
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
-        }
-
-        .glass-card:hover .action-buttons {
+        .card-container:hover .action-layer {
             opacity: 1;
-            transform: translateY(0);
+            transform: scale(1);
+            pointer-events: auto;
         }
 
-        .glass-card:hover .card-desc {
+        .card-container:hover .info-layer {
             opacity: 0;
-            transform: translateY(-10px);
+            transform: scale(1.05);
             pointer-events: none;
+        }
+
+        /* Estilos personalizados para los mini componentes */
+        #snake-canvas {
+            image-rendering: pixelated;
         }
     </style>
 </head>
@@ -65,24 +116,24 @@
 
     <header class="relative w-full max-w-7xl mx-auto px-4 pt-12 pb-6">
         <div class="glass-panel rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 rounded-full blur-[80px] pointer-events-none"></div>
+            <div class="absolute -right-10 -top-10 w-64 h-64 bg-red-900/20 rounded-full blur-[100px] pointer-events-none"></div>
             
             <div class="space-y-4 max-w-2xl relative z-10">
-                <span class="text-xs font-semibold tracking-widest text-indigo-400 uppercase bg-indigo-500/10 px-3.5 py-1.5 rounded-full border border-indigo-500/20">
-                    Sistema Operativo V1.0
+                <span class="text-xs font-semibold tracking-widest text-orange-400 uppercase bg-orange-500/10 px-3.5 py-1.5 rounded-full border border-orange-500/20">
+                    Core Protocol Engine
                 </span>
-                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400">
-                    Nexus Hub
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-white bg-clip-text bg-gradient-to-r from-white via-orange-200 to-red-400">
+                    Xoring
                 </h1>
                 <p class="text-gray-400 text-sm md:text-base leading-relaxed">
-                    Tu portal descentralizado de recursos. Explora nuestra suite curada de herramientas de última generación, utilidades optimizadas y videojuegos experimentales.
+                    Ecosistema digital interactivo y minimalista. Pasa el cursor sobre los módulos para inicializar el software integrado en tiempo real.
                 </p>
             </div>
             
             <div class="flex flex-wrap gap-3 relative z-10">
-                <a href="#juegos" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Juegos</a>
-                <a href="#utilidades" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Utilidades</a>
-                <a href="#herramientas" class="px-5 py-2.5 rounded-xl glass-card text-xs font-semibold hover:text-white transition">Herramientas</a>
+                <a href="#juegos" class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:text-white transition">Juegos</a>
+                <a href="#utilidades" class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:text-white transition">Utilidades</a>
+                <a href="#herramientas" class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold hover:text-white transition">Herramientas</a>
             </div>
         </div>
     </header>
@@ -91,63 +142,43 @@
 
         <section id="juegos" class="space-y-6">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
+                <div class="p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
                     <i data-lucide="gamepad-2" class="w-5 h-5"></i>
                 </div>
                 <h2 class="text-2xl font-bold tracking-wide text-white">Juegos</h2>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span class="text-xs text-indigo-400 font-mono">01 / ARCADE</span>
-                            <h3 class="text-lg font-bold text-white">Cyber Neon Runner</h3>
-                        </div>
-                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
-                            <i data-lucide="zap" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-
-                    <div class="relative h-16 flex items-center">
-                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
-                            Esquiva obstáculos en un entorno virtual procedural al ritmo de sintetizadores retrofuturistas.
-                        </p>
+                <div class="card-container h-80 group">
+                    <div class="glass-card-inner p-6 flex flex-col justify-between relative overflow-hidden">
                         
-                        <div class="action-buttons w-full flex gap-3 absolute">
-                            <button class="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95 shadow-lg shadow-indigo-600/20">
-                                Jugar
-                            </button>
-                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all duration-200 active:scale-95">
-                                Descargar
-                            </button>
+                        <div class="info-layer transition-all duration-300 flex flex-col h-full justify-between">
+                            <div class="flex justify-between items-start">
+                                <div class="space-y-1">
+                                    <span class="text-xs text-orange-400 font-mono">01 / INTEGRADO</span>
+                                    <h3 class="text-xl font-bold text-white">Snake Retro</h3>
+                                </div>
+                                <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                                    <i data-lucide="play" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                                Clásico juego de la serpiente optimizado para entornos de baja latencia. Controla con las flechas de dirección.
+                            </p>
                         </div>
-                    </div>
-                </div>
 
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span class="text-xs text-indigo-400 font-mono">02 / ESTRATEGIA</span>
-                            <h3 class="text-lg font-bold text-white">Grid Commander</h3>
+                        <div class="action-layer absolute inset-0 p-4 flex flex-col bg-slate-950/90 items-center justify-center space-y-3">
+                            <div class="w-full flex justify-between px-2 text-xs font-mono text-orange-400">
+                                <span id="snake-score">Score: 0</span>
+                                <span>Usa las Flechas ↑↓←→</span>
+                            </div>
+                            <canvas id="snake-canvas" width="180" height="140" class="bg-black/40 border border-white/10 rounded-lg"></canvas>
+                            <div class="w-full flex gap-2">
+                                <button onclick="startSnake()" class="flex-1 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold transition">Jugar</button>
+                                <button onclick="alert('Descargando ejecutable compilado...')" class="py-1.5 px-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-lg text-xs font-semibold transition"><i data-lucide="download" class="w-3.5 h-3.5"></i></button>
+                            </div>
                         </div>
-                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
-                            <i data-lucide="shield" class="w-5 h-5"></i>
-                        </div>
-                    </div>
 
-                    <div class="relative h-16 flex items-center">
-                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
-                            Defiende el núcleo central de ciberamenazas en tiempo real en un tablero táctico holográfico.
-                        </p>
-                        <div class="action-buttons w-full flex gap-3 absolute">
-                            <button class="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-all">
-                                Jugar
-                            </button>
-                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
-                                Descargar
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -155,36 +186,57 @@
 
         <section id="utilidades" class="space-y-6">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-pink-400">
+                <div class="p-2 bg-orange-500/10 border border-orange-500/20 rounded-lg text-orange-400">
                     <i data-lucide="sliders" class="w-5 h-5"></i>
                 </div>
                 <h2 class="text-2xl font-bold tracking-wide text-white">Utilidades</h2>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span class="text-xs text-pink-400 font-mono">SYSTEM</span>
-                            <h3 class="text-lg font-bold text-white">Compresor de Assets</h3>
+                <div class="card-container h-80 group">
+                    <div class="glass-card-inner p-6 flex flex-col justify-between relative overflow-hidden">
+                        
+                        <div class="info-layer transition-all duration-300 flex flex-col h-full justify-between">
+                            <div class="flex justify-between items-start">
+                                <div class="space-y-1">
+                                    <span class="text-xs text-purple-400 font-mono">02 / INTERFAZ</span>
+                                    <h3 class="text-xl font-bold text-white">Calculadora</h3>
+                                </div>
+                                <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                                Microcalculadora cuántica funcional para operaciones matemáticas inmediatas y precisas.
+                            </p>
                         </div>
-                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
-                            <i data-lucide="file-archive" class="w-5 h-5"></i>
-                        </div>
-                    </div>
 
-                    <div class="relative h-16 flex items-center">
-                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
-                            Optimiza imágenes y modelos 3D sin pérdida de calidad directamente en el navegador.
-                        </p>
-                        <div class="action-buttons w-full flex gap-3 absolute">
-                            <button class="flex-1 py-2 px-4 bg-pink-600 hover:bg-pink-500 text-white rounded-xl text-xs font-semibold transition-all">
-                                Lanzar
-                            </button>
-                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
-                                Descargar
-                            </button>
+                        <div class="action-layer absolute inset-0 p-4 flex flex-col bg-slate-950/90 justify-between">
+                            <div id="calc-screen" class="w-full bg-black/40 border border-white/10 p-2 text-right font-mono text-lg text-emerald-400 rounded-lg overflow-hidden h-10">0</div>
+                            <div class="grid grid-cols-4 gap-1 text-xs font-mono">
+                                <button onclick="pressCalc('7')" class="p-2 bg-white/5 hover:bg-white/10 rounded">7</button>
+                                <button onclick="pressCalc('8')" class="p-2 bg-white/5 hover:bg-white/10 rounded">8</button>
+                                <button onclick="pressCalc('9')" class="p-2 bg-white/5 hover:bg-white/10 rounded">9</button>
+                                <button onclick="pressCalc('/')" class="p-2 bg-orange-600/30 text-orange-300 rounded">/</button>
+                                <button onclick="pressCalc('4')" class="p-2 bg-white/5 hover:bg-white/10 rounded">4</button>
+                                <button onclick="pressCalc('5')" class="p-2 bg-white/5 hover:bg-white/10 rounded">5</button>
+                                <button onclick="pressCalc('6')" class="p-2 bg-white/5 hover:bg-white/10 rounded">6</button>
+                                <button onclick="pressCalc('*')" class="p-2 bg-orange-600/30 text-orange-300 rounded">*</button>
+                                <button onclick="pressCalc('1')" class="p-2 bg-white/5 hover:bg-white/10 rounded">1</button>
+                                <button onclick="pressCalc('2')" class="p-2 bg-white/5 hover:bg-white/10 rounded">2</button>
+                                <button onclick="pressCalc('3')" class="p-2 bg-white/5 hover:bg-white/10 rounded">3</button>
+                                <button onclick="pressCalc('-')" class="p-2 bg-orange-600/30 text-orange-300 rounded">-</button>
+                                <button onclick="pressCalc('C')" class="p-2 bg-red-600/30 text-red-300 rounded">C</button>
+                                <button onclick="pressCalc('0')" class="p-2 bg-white/5 hover:bg-white/10 rounded">0</button>
+                                <button onclick="calcResult()" class="p-2 bg-emerald-600/30 text-emerald-300 rounded">=</button>
+                                <button onclick="pressCalc('+')" class="p-2 bg-orange-600/30 text-orange-300 rounded">+</button>
+                            </div>
+                            <div class="w-full flex gap-2">
+                                <button class="flex-1 py-1 bg-purple-700 text-white rounded-lg text-xs font-semibold">Lanzar</button>
+                                <button onclick="alert('Descargando widget...')" class="py-1 px-3 bg-white/5 border border-white/10 rounded-lg text-xs"><i data-lucide="download" class="w-3.5 h-3.5"></i></button>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -192,36 +244,58 @@
 
         <section id="herramientas" class="space-y-6">
             <div class="flex items-center gap-3">
-                <div class="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400">
+                <div class="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-400">
                     <i data-lucide="terminal" class="w-5 h-5"></i>
                 </div>
                 <h2 class="text-2xl font-bold tracking-wide text-white">Herramientas</h2>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group h-52 flex flex-col justify-between">
-                    <div class="flex justify-between items-start">
-                        <div class="space-y-1">
-                            <span class="text-xs text-emerald-400 font-mono">DEVELOPER</span>
-                            <h3 class="text-lg font-bold text-white">Generador JSON</h3>
+                <div class="card-container h-80 group">
+                    <div class="glass-card-inner p-6 flex flex-col justify-between relative overflow-hidden">
+                        
+                        <div class="info-layer transition-all duration-300 flex flex-col h-full justify-between">
+                            <div class="flex justify-between items-start">
+                                <div class="space-y-1">
+                                    <span class="text-xs text-emerald-400 font-mono">03 / AUDIO</span>
+                                    <h3 class="text-xl font-bold text-white">Frecuencia Synth</h3>
+                                </div>
+                                <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
+                                    <i data-lucide="volume-2" class="w-5 h-5"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-400 leading-relaxed mb-4">
+                                Generador de síntesis de ondas analógicas en segundo plano. Regula los decibelios usando el deslizador.
+                            </p>
                         </div>
-                        <div class="p-2.5 bg-white/5 rounded-xl border border-white/10 text-gray-300">
-                            <i data-lucide="code" class="w-5 h-5"></i>
-                        </div>
-                    </div>
 
-                    <div class="relative h-16 flex items-center">
-                        <p class="card-desc text-xs text-gray-400 leading-relaxed transition-all duration-300 absolute w-full">
-                            Crea estructuras mock de datos JSON en segundos con plantillas inteligentes.
-                        </p>
-                        <div class="action-buttons w-full flex gap-3 absolute">
-                            <button class="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-all">
-                                Lanzar
-                            </button>
-                            <button class="py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-xl text-xs font-semibold transition-all">
-                                Descargar
-                            </button>
+                        <div class="action-layer absolute inset-0 p-4 flex flex-col bg-slate-950/90 justify-between items-center">
+                            <span class="text-xs font-mono text-purple-400">Audio Frecuencia Activa</span>
+                            
+                            <div class="w-full space-y-2 flex flex-col items-center">
+                                <div class="w-full flex items-center justify-between text-xs px-1 text-gray-400">
+                                    <span>Volumen</span>
+                                    <span id="vol-txt">0%</span>
+                                </div>
+                                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="0" 
+                                       class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                                       oninput="updateVolume(this.value)">
+                                <div class="flex gap-1 w-full h-4 justify-between items-end px-2" id="vu-meter">
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-2 transition-all"></div>
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-1 transition-all"></div>
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-3 transition-all"></div>
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-1 transition-all"></div>
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-4 transition-all"></div>
+                                    <div class="w-1.5 bg-purple-500 rounded-t h-2 transition-all"></div>
+                                </div>
+                            </div>
+
+                            <div class="w-full flex gap-2">
+                                <button id="audio-btn" onclick="toggleSynth()" class="flex-1 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition">Lanzar Audio</button>
+                                <button onclick="alert('Descargando driver de audio...')" class="py-1.5 px-3 bg-white/5 border border-white/10 rounded-lg text-xs"><i data-lucide="download" class="w-3.5 h-3.5"></i></button>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -230,15 +304,153 @@
     </main>
 
     <footer class="w-full max-w-7xl mx-auto px-4 py-8 border-t border-white/5 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-xs text-gray-500">© 2026 Nexus Hub. Todos los derechos reservados.</p>
+        <p class="text-xs text-gray-500">© 2026 Xoring Engine. Control de Entorno Futursita.</p>
         <div class="flex gap-4 text-xs text-gray-400">
-            <a href="#" class="hover:text-white transition">Privacidad</a>
             <a href="#" class="hover:text-white transition">GitHub</a>
         </div>
     </footer>
 
     <script>
+        // Inicializar Lucide Icons
         lucide.createIcons();
+
+        // --- LÓGICA SNEAK GAME ---
+        const canvas = document.getElementById('snake-canvas');
+        const ctx = canvas.getContext('2d');
+        let snake, food, dx, dy, score, gameInterval;
+
+        function startSnake() {
+            clearInterval(gameInterval);
+            snake = [{x: 80, y: 60}, {x: 70, y: 60}, {x: 60, y: 60}];
+            dx = 10; dy = 0; score = 0;
+            document.getElementById('snake-score').innerText = "Score: " + score;
+            generateFood();
+            gameInterval = setInterval(runSnake, 120);
+        }
+
+        function generateFood() {
+            food = {
+                x: Math.floor(Math.random() * (canvas.width / 10)) * 10,
+                y: Math.floor(Math.random() * (canvas.height / 10)) * 10
+            };
+        }
+
+        function runSnake() {
+            if (checkGameOver()) {
+                clearInterval(gameInterval);
+                alert("Game Over! Score final: " + score);
+                return;
+            }
+            
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                document.getElementById('snake-score').innerText = "Score: " + score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(food.x, food.y, 8, 8);
+            ctx.fillStyle = '#f97316';
+            snake.forEach(part => ctx.fillRect(part.x, part.y, 8, 8));
+        }
+
+        function checkGameOver() {
+            const head = snake[0];
+            const hitWall = head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height;
+            const hitSelf = snake.slice(1).some(part => part.x === head.x && part.y === head.y);
+            return hitWall || hitSelf;
+        }
+
+        window.addEventListener('keydown', e => {
+            if(e.key === 'ArrowUp' && dy === 0) { dx = 0; dy = -10; e.preventDefault(); }
+            if(e.key === 'ArrowDown' && dy === 0) { dx = 0; dy = 10; e.preventDefault(); }
+            if(e.key === 'ArrowLeft' && dx === 0) { dx = -10; dy = 0; e.preventDefault(); }
+            if(e.key === 'ArrowRight' && dx === 0) { dx = 10; dy = 0; e.preventDefault(); }
+        });
+
+        // --- LÓGICA CALCULADORA ---
+        let calcVal = "";
+        function pressCalc(num) {
+            if(num === 'C') { calcVal = ""; } 
+            else { calcVal += num; }
+            document.getElementById('calc-screen').innerText = calcVal || "0";
+        }
+        function calcResult() {
+            try {
+                calcVal = eval(calcVal).toString();
+                document.getElementById('calc-screen').innerText = calcVal;
+            } catch {
+                document.getElementById('calc-screen').innerText = "ERROR";
+                calcVal = "";
+            }
+        }
+
+        // --- LÓGICA AUDIO CON MEDIDOR DE VOLUMEN (Web Audio API) ---
+        let audioCtx, oscillator, gainNode;
+        let isPlaying = false;
+
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sawtooth'; // Onda futurista tipo Synth
+            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime); // Frecuencia baja agradable (A2)
+            
+            // Filtro para suavizar y dar toque oscuro
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime); // Inicia en silencio
+            oscillator.start();
+        }
+
+        function toggleSynth() {
+            if (!audioCtx) initAudio();
+            if (!isPlaying) {
+                audioCtx.resume();
+                document.getElementById('audio-btn').innerText = "Detener Audio";
+                document.getElementById('audio-btn').classList.replace('bg-emerald-700', 'bg-red-700');
+                isPlaying = true;
+                animateVU();
+            } else {
+                updateVolume(0);
+                document.getElementById('vol-slider').value = 0;
+                document.getElementById('audio-btn').innerText = "Lanzar Audio";
+                document.getElementById('audio-btn').classList.replace('bg-red-700', 'bg-emerald-700');
+                isPlaying = false;
+            }
+        }
+
+        function updateVolume(val) {
+            document.getElementById('vol-txt').innerText = Math.round(val * 100) + "%";
+            if (gainNode && isPlaying) {
+                gainNode.gain.linearRampToValueAtTime(val * 0.3, audioCtx.currentTime + 0.05); // Límite de volumen para cuidar oídos
+            }
+        }
+
+        // Animación del VU Meter simulado por volumen
+        function animateVU() {
+            if(!isPlaying) return;
+            const bars = document.getElementById('vu-meter').children;
+            const currentVol = parseFloat(document.getElementById('vol-slider').value);
+            for(let bar of bars) {
+                let activeHeight = currentVol > 0 ? Math.random() * (currentVol * 16) + 4 : 2;
+                bar.style.height = `${activeHeight}px`;
+            }
+            requestAnimationFrame(animateVU);
+        }
     </script>
 </body>
 </html>
