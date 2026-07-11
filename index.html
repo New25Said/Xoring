@@ -3,151 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulación de Agujero Negro</title>
+    <title>Simulación de Agujero Negro Realista</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-        body, html {
-            width: 100%;
-            height: 100%;
-            background-color: #050508;
-            cursor: crosshair;
-        }
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
+        body { margin: 0; overflow: hidden; background: black; color: white; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #info { position: absolute; top: 10px; left: 10px; pointer-events: none; }
     </style>
 </head>
 <body>
+    <canvas id="canvas"></canvas>
+    <div id="info">Agujero Negro Interactivo</div>
 
-    <canvas id="blackHoleCanvas"></canvas>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec2 position;
+        void main() {
+            gl_Position = vec4(position, 0.0, 1.0);
+        }
+    </script>
 
-    <script>
-        const canvas = document.getElementById('blackHoleCanvas');
-        const gl = canvas.getContext('webgl');
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform vec2 u_resolution;
+        uniform vec2 u_mouse;
+        uniform float u_time;
 
-        if (!gl) {
-            alert('Tu navegador no soporta WebGL. Intenta con otro más moderno.');
+        // Función para simular el fondo de estrellas
+        float hash(vec2 p) {
+            p = fract(p * vec2(123.34, 456.21));
+            p += dot(p, p + 45.32);
+            return fract(p.x * p.y);
         }
 
-        // Configuración del tamaño
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
-        }
-        window.addEventListener('resize', resizeCanvas);
+        void main() {
+            // Normalizar coordenadas (-1.0 a 1.0, corregido por relación de aspecto)
+            vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+            // Normalizar posición del ratón
+            vec2 m = (u_mouse - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
 
-        // Posición del mouse (inicializada en el centro)
-        let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX;
-            mouse.y = window.innerHeight - e.clientY; // Invertir Y para coordenadas WebGL
-        });
+            // Vector desde el centro del agujero negro al píxel actual
+            vec2 diff = uv - m;
+            float dist = length(diff);
 
-        // --- SHADERS ---
-        // Vertex Shader: Define la geometría (un plano simple que cubre la pantalla)
-        const vsSource = `
-            attribute vec2 position;
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        `;
+            // Parámetros físicos (puedes ajustar estos para cambiar el efecto)
+            float horizonRadius = 0.08;      // Radio del horizonte de eventos
+            float discInnerRadius = 0.1;    // Inicio del disco de acreción
+            float discOuterRadius = 0.35;   // Fin del disco de acreción
+            float lensingStrength = 0.02;     // Fuerza de la lente gravitacional
 
-        // Fragment Shader: Aquí ocurre toda la magia física/visual matemática
-        const fsSource = `
-            precision highp float;
-            uniform vec2 u_resolution;
-            uniform vec2 u_mouse;
-            uniform float u_time;
+            // Lógica de renderizado
+            if (dist < horizonRadius) {
+                // Interior del horizonte de eventos: Absolutamente negro
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            } else {
+                // --- Lente Gravitacional (Desviación de la luz) ---
+                // Calculamos cuánto se desvía la luz según la distancia
+                float lensDist = max(dist, horizonRadius * 1.1); // Evitar división por cero cerca del borde
+                float deflection = lensingStrength / (lensDist * lensDist);
+                // Desviamos la dirección de la muestra de fondo
+                vec2 rayDir = normalize(diff);
+                vec2 sampleUV = uv - rayDir * deflection;
 
-            // Función para generar un fondo de estrellas pseudo-aleatorio
-            float hash(vec2 p) {
-                p = fract(p * vec2(123.34, 456.21));
-                p += dot(p, p + 45.32);
-                return fract(p.x * p.y);
-            }
-
-            void main() {
-                // Normalizar coordenadas (de -1 a 1, corregido por aspecto)
-                vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-                vec2 m = (u_mouse - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-
-                // Vector desde el centro del agujero negro (mouse) al píxel actual
-                vec2 dir = uv - m;
-                float dist = length(dir);
-
-                // --- PARÁMETROS DEL AGUJERO NEGRO ---
-                float rs = 0.08;          // Radio de Schwarzschild (Horizonte de sucesos)
-                float discoRadio = 0.28;  // Límite exterior del disco de acrecimiento
-
-                // Inicializar color de fondo (Espacio profundo oscuro)
-                vec3 finalColor = vec3(0.01, 0.01, 0.02);
-
-                if (dist < rs) {
-                    // Dentro del Horizonte de Sucesos: Nada escapa, oscuridad absoluta
-                    finalColor = vec3(0.0, 0.0, 0.0);
-                } else {
-                    // --- LENTE GRAVITACIONAL (Efecto Einstein) ---
-                    // La gravedad curva la luz. Modificamos la dirección de muestreo del fondo.
-                    float desviacion = (rs * rs) / dist; 
-                    vec2 uvDesviado = uv - normalize(dir) * desviacion;
-
-                    // Dibujar estrellas en el fondo desviado
-                    float estrellas = hash(floor(uvDesviado * 150.0));
-                    if (estrellas > 0.992) {
-                        float brillo = hash(uvDesviado) * 0.5 + 0.5;
-                        finalColor += vec3(brillo);
-                    }
-
-                    // --- DISCO DE ACRECIMIENTO (Gas caliente orbitando) ---
-                    if (dist < discoRadio) {
-                        // Suavizar los bordes del disco
-                        float intensidadDisco = smoothstep(discoRadio, rs + 0.02, dist);
-                        
-                        // Añadir un ruido dinámico para simular el movimiento del gas
-                        float angulo = atan(dir.y, dir.x);
-                        float ruidoGas = sin(angulo * 8.0 - u_time * 4.0) * 0.15 + 0.85;
-                        
-                        // Degradado de color: Azul/púrpura ardiente en el centro, naranja/rojo en los bordes
-                        vec3 colorNucleo = vec3(0.4, 0.2, 0.9); // Púrpura cósmico
-                        vec3 colorBorde = vec3(0.9, 0.3, 0.1);  // Naranja ardiente
-                        vec3 colorDisco = mix(colorBorde, colorNucleo, intensidadDisco);
-
-                        // Mezclar el disco con el fondo
-                        finalColor = mix(finalColor, colorDisco * ruidoGas, intensidadDisco * 0.7);
-                    }
-
-                    // --- EFECTO DE BRILLO EN EL HORIZONTE (Anillo de fotones) ---
-                    float anilloFotones = smoothstep(rs + 0.015, rs, dist);
-                    finalColor = mix(finalColor, vec3(0.9, 0.6, 1.0), anilloFotones * 0.8);
+                // --- Fondo de Estrellas ---
+                // Generamos estrellas en la posición desviada
+                float stars = hash(floor(sampleUV * 200.0));
+                vec3 finalColor = vec3(0.0);
+                if (stars > 0.995) {
+                    finalColor += vec3(0.8 + 0.2 * hash(sampleUV * 100.0)); // Brillo estelar
                 }
+
+                // --- Anillo de Luz (Disco de Acreción) ---
+                if (dist > discInnerRadius && dist < discOuterRadius) {
+                    // Calculamos la intensidad según la distancia al anillo
+                    float intensity = 1.0 - smoothstep(discInnerRadius, discOuterRadius, dist);
+                    intensity *= smoothstep(discInnerRadius - 0.02, discInnerRadius, dist); // Suavizar borde interno
+
+                    // Efecto de rotación del disco
+                    float angle = atan(diff.y, diff.x);
+                    float twist = sin(angle * 6.0 + u_time * 2.0) * 0.5 + 0.5;
+                    
+                    // Mezcla de colores (naranja, amarillo, rojo para el calor)
+                    vec3 col1 = vec3(1.0, 0.4, 0.0); // Naranja brillante
+                    vec3 col2 = vec3(0.6, 0.1, 0.0); // Rojo oscuro
+                    vec3 ringColor = mix(col2, col1, intensity * twist);
+
+                    // Sumar el color del anillo al color de fondo
+                    finalColor += ringColor * intensity * 1.5;
+                }
+
+                // --- Brillo Atmosférico (Anillo de Fotones) ---
+                // Un pequeño resplandor justo en el borde del horizonte
+                float photonRing = smoothstep(horizonRadius + 0.01, horizonRadius, dist);
+                finalColor += vec3(0.9, 0.6, 0.3) * photonRing * 0.7;
 
                 gl_FragColor = vec4(finalColor, 1.0);
             }
-        `;
+        }
+    </script>
 
-        // --- INICIALIZACIÓN DE WEBGL ---
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert('Tu navegador no soporta WebGL. No se puede renderizar el agujero negro.');
+        }
+
+        // --- Configuración de Shaders ---
         function createShader(gl, type, source) {
             const shader = gl.createShader(type);
             gl.shaderSource(shader, source);
             gl.compileShader(shader);
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error('Error al compilar shader:', gl.getShaderInfoLog(shader));
+                console.error(gl.getShaderInfoLog(shader));
                 gl.deleteShader(shader);
                 return null;
             }
             return shader;
         }
 
-        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
-        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        const vertexShaderSource = document.getElementById('vertex-shader').text;
+        const fragmentShaderSource = document.getElementById('fragment-shader').text;
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
 
         const program = gl.createProgram();
         gl.attachShader(program, vertexShader);
@@ -155,41 +133,58 @@
         gl.linkProgram(program);
 
         if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-            console.error('Error al linkear el programa WebGL:', gl.getProgramInfoLog(program));
+            console.error(gl.getProgramInfoLog(program));
         }
 
         gl.useProgram(program);
 
-        // Definir la geometría (un cuadrado que cubre toda la pantalla)
+        // --- Geometría ---
         const positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-            -1, -1,   1, -1,  -1,  1,
-            -1,  1,   1, -1,   1,  1,
-        ]), gl.STATIC_DRAW);
+        const positions = [
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1,
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
         const positionLocation = gl.getAttribLocation(program, 'position');
         gl.enableVertexAttribArray(positionLocation);
         gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-        // Obtener ubicaciones de variables Uniforms
+        // --- Uniforms ---
         const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
         const mouseLocation = gl.getUniformLocation(program, 'u_mouse');
         const timeLocation = gl.getUniformLocation(program, 'u_time');
 
-        resizeCanvas();
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
 
-        // --- BUCLE DE ANIMACIÓN ---
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = window.innerHeight - e.clientY; // Invertir Y para WebGL
+        });
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Bucle de Animación ---
         function render(time) {
             time *= 0.001; // Convertir a segundos
 
-            // Pasar datos actuales al Shader
             gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
-            gl.uniform2f(mouseLocation, mouse.x, mouse.y);
-            gl.uniform3f(timeLocation, time, 0, 0); // Usamos solo el primer componente para el tiempo
+            gl.uniform2f(mouseLocation, mouseX, mouseY);
             gl.uniform1f(timeLocation, time);
 
-            // Dibujar
             gl.drawArrays(gl.TRIANGLES, 0, 6);
 
             requestAnimationFrame(render);
