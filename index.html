@@ -3,285 +3,385 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Singularidad Cuántica y Zoom Infinito</title>
+    <title>Simulador de Agujero Negro: Motor de Acreción Dinámica</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; overflow: hidden; }
-        body, html { width: 100%; height: 100%; background: #000; font-family: 'Courier New', Courier, monospace; }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        body, html { width: 100%; height: 100%; background: #020205; font-family: 'Courier New', Courier, monospace; }
+        canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; }
+        #webglCanvas { z-index: 1; pointer-events: none; } /* El agujero negro flota arriba */
+        #spaceCanvas { z-index: 0; } /* El espacio y partículas abajo */
         
-        /* Interfaz de Instrumentación Científica al estilo Interstellar */
         #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: #ffaa44;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 20px;
-            border: 1px solid #ffaa44;
-            border-radius: 4px;
-            pointer-events: none;
-            box-shadow: 0 0 15px rgba(255, 170, 68, 0.2);
-            font-size: 13px;
-            line-height: 1.6;
+            position: absolute; top: 20px; left: 20px; color: #ff9900;
+            background: rgba(4, 4, 10, 0.9); padding: 20px;
+            border: 1px solid #ff9900; border-radius: 4px; z-index: 10;
+            pointer-events: none; font-size: 13px; line-height: 1.6;
+            box-shadow: 0 0 20px rgba(255,153,0,0.15);
         }
-        .critical { color: #ff3333; font-weight: bold; }
+        .alert { color: #ff3333; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         #instructions {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            color: #888;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 11px;
-            pointer-events: none;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            color: #888; background: rgba(0, 0, 0, 0.8); padding: 10px 20px;
+            border-radius: 20px; font-size: 12px; z-index: 10; pointer-events: none;
+            border: 1px solid #333; text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <canvas id="universeCanvas"></canvas>
+    <canvas id="spaceCanvas"></canvas>
+    <canvas id="webglCanvas"></canvas>
     
     <div id="hud">
-        <div>[ TELEMETRÍA DE SINGULARIDAD ]</div>
+        <div>[ TELEMETRÍA DE CASUALIDAD ]</div>
         <div>-------------------------------------</div>
-        <div>Masa del Agujero Negro: <span id="hud-mass">10.00</span> M☉ (Masas Solares)</div>
-        <div>Radio de Schwarzschild: <span id="hud-radius">29.53</span> km</div>
-        <div>Sistemas Solares Devorados: <span id="hud-consumed" class="critical">0</span></div>
-        <div>Escala de Zoom: <span id="hud-zoom">1.00</span>x</div>
-        <div>Velocidad Orbital Crítica: <span id="hud-velocity">299,792.4</span> km/s (1.00 c)</div>
-        <div>Coordenadas Cámara: X: <span id="hud-camx">0.00</span> | Y: <span id="hud-camy">0.00</span></div>
+        <div>Masa del Agujero Negro: <span id="hud-mass">14.50</span> M☉</div>
+        <div>Radio de Schwarzschild: <span id="hud-radius">42.82</span> km</div>
+        <div>Cuerpos Celestes Devorados: <span id="hud-consumed" class="alert">0</span></div>
+        <div>Factor de Zoom Espacial: <span id="hud-zoom">1.00</span>x</div>
+        <div>Coordenadas Espaciales: X: <span id="hud-camx">0</span> | Y: <span id="hud-camy">0</span></div>
     </div>
 
     <div id="instructions">
-        [ARRASTRAR RATÓN] Mover Cámara | [RUEDA] Zoom Infinito Entrar/Salir
+        [Click Izquierdo + Arrastrar] Desplazar Agujero Negro por el Espacio | [Rueda del Ratón] Zoom Infinito
     </div>
 
     <script>
-        const canvas = document.getElementById('universeCanvas');
-        const gl = canvas.getContext('webgl');
+        const spaceCanvas = document.getElementById('spaceCanvas');
+        const ctx = spaceCanvas.getContext('2d');
+        const webglCanvas = document.getElementById('webglCanvas');
+        const gl = webglCanvas.getContext('webgl');
 
-        if (!gl) alert('Se requiere WebGL para procesar este universo.');
-
-        // --- VARIABLES DE ESTADO FÍSICO ---
-        let mass = 14.5; // Masa inicial en masas solares
-        let systemsConsumed = 0;
+        // --- SISTEMA FÍSICO GLOBAL ---
+        let mass = 14.5;
+        let consumedCount = 0;
         let zoom = 1.0;
         let targetZoom = 1.0;
-        let camX = 0.0, camY = 0.0;
-        let targetCamX = 0.0, targetCamY = 0.0;
+        let camX = 0, camY = 0;
+        let targetCamX = 0, targetCamY = 0;
         let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
+        let prevMouse = { x: 0, y: 0 };
 
-        // --- MANEJO DE ENTRADAS (INTERACTIVIDAD) ---
-        canvas.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            previousMousePosition = { x: e.clientX, y: e.clientY };
-        });
+        // Listas de entidades celestes
+        let stars = [];
+        let planetarySystems = [];
+        let particles = [];
 
+        // --- GENERACIÓN DEL SECTOR GALÁCTICO DE JUEGO ---
+        function initUniverse() {
+            stars = [];
+            planetarySystems = [];
+            particles = [];
+
+            // Generar 800 estrellas de fondo hiper-profundas (fijas)
+            for(let i=0; i<800; i++) {
+                stars.push({
+                    x: (Math.random() - 0.5) * 8000,
+                    y: (Math.random() - 0.5) * 8000,
+                    z: Math.random() * 2 + 0.5,
+                    size: Math.random() * 1.5 + 0.5,
+                    brightness: Math.random()
+                });
+            }
+
+            // Generar 40 Sistemas Solares interactivos distribuidos por el mapa
+            for(let i=0; i<40; i++) {
+                let sysX = (Math.random() - 0.5) * 6000;
+                let sysY = (Math.random() - 0.5) * 6000;
+                
+                // Evitar que aparezcan justo encima del agujero negro al iniciar
+                if (Math.abs(sysX) < 400 && Math.abs(sysY) < 400) { sysX += 600; sysY += 600; }
+
+                let system = {
+                    x: sysX,
+                    y: sysY,
+                    type: 'star',
+                    size: Math.random() * 15 + 10,
+                    color: ['#ffdd66', '#ff5533', '#66ccff', '#ffffff'][Math.floor(Math.random() * 4)],
+                    alive: true,
+                    planetas: []
+                };
+
+                // Añadir de 1 a 4 planetas a cada estrella
+                let numPlanets = Math.floor(Math.random() * 4) + 1;
+                for(let j=0; j<numPlanets; j++) {
+                    system.planetas.push({
+                        orbitRadius: (j + 1) * 45 + Math.random() * 20,
+                        orbitSpeed: (Math.random() * 0.02 + 0.005) * (Math.random() > 0.5 ? 1 : -1),
+                        angle: Math.random() * Math.PI * 2,
+                        size: Math.random() * 5 + 3,
+                        color: ['#888888', '#aaccff', '#ffaa66', '#8cf5a7'][Math.floor(Math.random() * 4)],
+                        alive: true
+                    });
+                }
+                planetarySystems.push(system);
+            }
+        }
+
+        // --- SISTEMA DE EXPLOSIÓN Y PARTÍCULAS DE ACRECIÓN ---
+        function createSpaghettification(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 8 + 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: Math.random() * 3 + 1,
+                    color: color,
+                    alpha: 1.0,
+                    life: Math.random() * 40 + 20
+                });
+            }
+        }
+
+        // --- CONTROLES INTERACTIVOS ---
+        window.addEventListener('mousedown', (e) => { isDragging = true; prevMouse = { x: e.clientX, y: e.clientY }; });
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            const deltaX = e.clientX - previousMousePosition.x;
-            const deltaY = e.clientY - previousMousePosition.y;
-
-            // El movimiento se escala según el zoom para ser suave en cualquier distancia
-            targetCamX -= (deltaX * 0.003) / targetZoom;
-            targetCamY += (deltaY * 0.003) / targetZoom;
-
-            previousMousePosition = { x: e.clientX, y: e.clientY };
+            let dx = e.clientX - prevMouse.x;
+            let dy = e.clientY - prevMouse.y;
+            // Mover el mapa de forma inversamente proporcional al zoom
+            targetCamX -= dx / zoom;
+            targetCamY -= dy / zoom;
+            prevMouse = { x: e.clientX, y: e.clientY };
         });
-
         window.addEventListener('mouseup', () => isDragging = false);
-
         window.addEventListener('wheel', (e) => {
             e.preventDefault();
-            // Zoom exponencial infinito
-            if (e.deltaY < 0) {
-                targetZoom *= 1.15;
-            } else {
-                targetZoom /= 1.15;
-            }
-            // Límites del universo observable
-            targetZoom = Math.max(0.0001, Math.min(targetZoom, 100000.0));
+            if (e.deltaY < 0) targetZoom *= 1.2;
+            else targetZoom /= 1.2;
+            targetZoom = Math.max(0.1, Math.min(targetZoom, 15.0)); // Zoom balanceado y jugable
         }, { passive: false });
 
         function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            gl.viewport(0, 0, canvas.width, canvas.height);
+            spaceCanvas.width = window.innerWidth;
+            spaceCanvas.height = window.innerHeight;
+            webglCanvas.width = window.innerWidth;
+            webglCanvas.height = window.innerHeight;
+            gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
         }
         window.addEventListener('resize', resize);
 
-        // --- SHADERS DE WEBGL (GLSL) ---
-        const vsSource = `
-            attribute vec2 position;
-            void main() { gl_Position = vec4(position, 0.0, 1.0); }
-        `;
+        // --- RENDERIZADO Y FÍSICAS EN CANVAS 2D ---
+        function drawUniverse() {
+            ctx.fillStyle = '#010103';
+            ctx.fillRect(0, 0, spaceCanvas.width, spaceCanvas.height);
 
+            let centerX = spaceCanvas.width / 2;
+            let centerY = spaceCanvas.height / 2;
+
+            // 1. Dibujar Estrellas Fijas del Fondo (con efecto Parallax)
+            stars.forEach(s => {
+                // El parallax se genera dividiendo por s.z
+                let sx = (s.x - camX * 0.2) * zoom / s.z + centerX;
+                let sy = (s.y - camY * 0.2) * zoom / s.z + centerY;
+
+                if(sx >= 0 && sx <= spaceCanvas.width && sy >= 0 && sy <= spaceCanvas.height) {
+                    ctx.fillStyle = `rgba(255,255,255, ${s.brightness * (0.3 + zoom*0.1)})`;
+                    ctx.fillRect(sx, sy, s.size * Math.min(zoom, 1.5), s.size * Math.min(zoom, 1.5));
+                }
+            });
+
+            // Radio de atracción crítico del Agujero Negro en coordenadas del mundo
+            let eventHorizonRadiusWorld = (4.0 + mass * 0.15) / zoom; 
+            let gravityRadiusWorld = eventHorizonRadiusWorld * 12.0; // Zona de succión
+
+            // 2. Procesar Sistemas Solares (Físicas de órbitas y destrucción)
+            planetarySystems.forEach(sys => {
+                if(!sys.alive) return;
+
+                // Calcular posición de la estrella en pantalla
+                let starX = (sys.x - camX) * zoom + centerX;
+                let starY = (sys.y - camY) * zoom + centerY;
+
+                // Distancia real entre la estrella y el centro del Agujero Negro (camX, camY)
+                let distToBH = Math.hypot(sys.x - camX, sys.y - camY);
+
+                // FÍSICA: Succión gravitatoria si entra en rango
+                if (distToBH < gravityRadiusWorld) {
+                    let angleToBH = Math.atan2(camY - sys.y, camX - sys.x);
+                    let force = (gravityRadiusWorld - distToBH) * 0.05;
+                    sys.x += Math.cos(angleToBH) * force;
+                    sys.y += Math.sin(angleToBH) * force;
+                }
+
+                // COLISIÓN: ¿El Agujero Negro se come la estrella?
+                if (distToBH < eventHorizonRadiusWorld) {
+                    sys.alive = false;
+                    consumedCount++;
+                    mass += sys.size * 0.15; // Aumentar masa
+                    createSpaghettification(starX, starY, sys.color, 150); // Partículas trágicas
+                    return;
+                }
+
+                // Dibujar la Estrella Principal si sigue viva
+                if (starX >= -100 && starX <= spaceCanvas.width + 100 && starY >= -100 && starY <= spaceCanvas.height + 100) {
+                    // Resplandor térmico de la estrella
+                    let gradient = ctx.createRadialGradient(starX, starY, 0, starX, starY, sys.size * zoom * 1.5);
+                    gradient.addColorStop(0, sys.color);
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath(); ctx.arc(starX, starY, sys.size * zoom * 1.5, 0, Math.PI*2); ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(starX, starY, sys.size * zoom * 0.5, 0, Math.PI*2); ctx.fill();
+                }
+
+                // Procesar Planetas orbitando esa estrella
+                sys.planetas.forEach(p => {
+                    if (!p.alive) return;
+
+                    p.angle += p.orbitSpeed; // Avanzar órbita
+                    let pWorldX = sys.x + Math.cos(p.angle) * p.orbitRadius;
+                    let pWorldY = sys.y + Math.sin(p.angle) * p.orbitRadius;
+
+                    let pX = (pWorldX - camX) * zoom + centerX;
+                    let pY = (pWorldY - camY) * zoom + centerY;
+
+                    let pDistToBH = Math.hypot(pWorldX - camX, pWorldY - camY);
+
+                    // Si el planeta cae en el agujero negro independientemente de su estrella
+                    if (pDistToBH < eventHorizonRadiusWorld) {
+                        p.alive = false;
+                        consumedCount++;
+                        mass += p.size * 0.05;
+                        createSpaghettification(pX, pY, p.color, 45);
+                        return;
+                    }
+
+                    // Atraer partículas o planetas sueltos
+                    if (pDistToBH < gravityRadiusWorld) {
+                        let angleToBH = Math.atan2(camY - pWorldY, camX - pWorldX);
+                        pWorldX += Math.cos(angleToBH) * 2;
+                        pWorldY += Math.sin(angleToBH) * 2;
+                    }
+
+                    // Dibujar el planeta y su línea de órbita
+                    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                    ctx.beginPath(); ctx.arc(starX, starY, p.orbitRadius * zoom, 0, Math.PI*2); ctx.stroke();
+
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath(); ctx.arc(pX, pY, p.size * zoom, 0, Math.PI*2); ctx.fill();
+                });
+            });
+
+            // 3. Renderizar y actualizar partículas cuánticas (Efecto espiral hacia la singularidad)
+            for(let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Efecto de vórtice: Hacer que las partículas giren hacia el centro de la pantalla
+                let angleToCenter = Math.atan2(centerY - p.y, centerX - p.x);
+                p.vx += Math.cos(angleToCenter) * 0.4 + Math.sin(angleToCenter) * 0.2;
+                p.vy += Math.sin(angleToCenter) * 0.4 - Math.cos(angleToCenter) * 0.2;
+
+                p.vx *= 0.96; p.vy *= 0.96; // Fricción espacial
+                p.life--;
+
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life / 60;
+                ctx.fillRect(p.x, p.y, p.size * Math.max(0.5, zoom), p.size * Math.max(0.5, zoom));
+            }
+            ctx.globalAlpha = 1.0; // Reset
+            particles = particles.filter(p => p.life > 0);
+        }
+
+        // --- CÓDIGO WEBGL PARA EL EFECTO LENTE GRAVITACIONAL DEL AGUJERO NEGRO ---
+        const vsSource = `attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }`;
         const fsSource = `
             precision highp float;
             uniform vec2 u_resolution;
             uniform float u_time;
-            uniform float u_zoom;
-            uniform vec2 u_camPos;
             uniform float u_horizonRadius;
-
-            // Generador fractal de ruido para estrellas y galaxias
-            float hash(vec2 p) {
-                p = fract(p * vec2(123.34, 456.21));
-                p += dot(p, p + 45.32);
-                return fract(p.x * p.y);
-            }
-
-            // Simulación del fondo intergaláctico mapeado en capas exponenciales
-            vec3 renderCosmos(vec2 uv) {
-                vec3 color = vec3(0.0);
-                
-                // Capa 1: Cúmulos galácticos lejanos (visibles a bajo zoom)
-                float galaxias = hash(floor(uv * 12.0));
-                if(galaxias > 0.98) {
-                    color += vec3(0.1, 0.15, 0.3) * (sin(u_time * 0.2 + galaxias * 10.0) * 0.5 + 0.5);
-                }
-
-                // Capa 2: Campo estelar estándar
-                float estrellas = hash(floor(uv * 250.0));
-                if (estrellas > 0.996) {
-                    color += vec3(hash(uv) * 0.4 + 0.6);
-                }
-                return color;
-            }
-
             void main() {
-                // Normalizar píxeles teniendo en cuenta la relación de aspecto
                 vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
-                
-                // Aplicar coordenadas de cámara y factor de zoom
-                vec2 spaceUV = (uv / u_zoom) + u_camPos;
-                
-                float dist = length(spaceUV - u_camPos);
-
-                // Variables dinámicas basadas en las leyes físicas calculadas por la CPU
-                float rs = u_horizonRadius; 
-                float discInner = rs * 1.2;
-                float discOuter = rs * 4.5;
+                float dist = length(uv);
+                float rs = u_horizonRadius;
 
                 if (dist < rs) {
-                    // Horizonte de Sucesos: Cero emisión de luz
-                    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); // Horizonte absoluto
                 } else {
-                    // --- LENTE GRAVITACIONAL RELATIVISTA ---
-                    // Deflexión de la luz basada en la ecuación de Einstein simplificada para tiempo real
-                    float deflection = (rs * 0.15) / (dist - rs * 0.95);
-                    vec2 deflectedUV = spaceUV - normalize(spaceUV - u_camPos) * deflection;
+                    // Distorsión del espacio-tiempo por lente gravitacional
+                    float deflection = (rs * rs * 0.4) / (dist - rs * 0.99);
+                    
+                    // Efecto de disco termonuclear naranja giratorio acoplado en el shader
+                    float discInner = rs * 1.1;
+                    float discOuter = rs * 3.8;
+                    vec3 finalGlow = vec3(0.0);
 
-                    // Renderizar el fondo estelar afectado por la gravedad
-                    vec3 finalColor = renderCosmos(deflectedUV);
-
-                    // --- DISCO DE ACRECIMIENTO REALISTA Y ANILLOS DE LUZ ---
                     if (dist > discInner && dist < discOuter) {
                         float intensity = 1.0 - smoothstep(discInner, discOuter, dist);
-                        intensity *= smoothstep(discInner - (rs * 0.1), discInner, dist);
-
-                        // Efecto Doppler / Distorsión orbital por rotación superlumínica
-                        float angle = atan(spaceUV.y - u_camPos.y, spaceUV.x - u_camPos.x);
-                        
-                        // Ruido cinético para el gas incandescente
-                        float gasWaves = sin(angle * 8.0 - u_time * 6.0) * 0.4 + 0.6;
-                        float turbulence = sin(dist * 80.0 - u_time * 12.0) * 0.3 + 0.7;
-
-                        // Gradiente térmico (Naranja plasma / Amarillo incandescente)
-                        vec3 hotPlasma = vec3(1.0, 0.42, 0.05);
-                        vec3 coreGlow = vec3(1.0, 0.85, 0.4);
-                        vec3 discColor = mix(hotPlasma, coreGlow, intensity);
-
-                        finalColor += discColor * intensity * (gasWaves * turbulence) * 1.8;
+                        float angle = atan(uv.y, uv.x);
+                        float wavy = sin(angle * 7.0 - u_time * 8.0) * 0.3 + 0.7;
+                        finalGlow = vec3(1.0, 0.4, 0.05) * intensity * wavy * 1.5;
                     }
 
-                    // --- ANILLO DE FOTONES DE EINSTEIN ---
-                    float photonRing = smoothstep(rs + (rs * 0.1), rs, dist);
-                    finalColor += vec3(1.0, 0.65, 0.2) * photonRing * 2.0;
+                    // Anillo de fotones brillante
+                    float photon = smoothstep(rs + 0.02, rs, dist);
+                    finalGlow += vec3(1.0, 0.7, 0.3) * photon * 2.0;
 
-                    gl_FragColor = vec4(finalColor, 1.0);
+                    // Devolvemos el color con alpha dinámico para fusionar con el Canvas 2D de abajo
+                    gl_FragColor = vec4(finalGlow, dist < discOuter ? (photon + 0.7) : 0.0);
                 }
             }
         `;
 
-        // --- SISTEMA DE COMPILACIÓN DE SHADERS ---
-        function loadShader(type, source) {
-            const shader = gl.createShader(type);
-            gl.shaderSource(shader, source);
-            gl.compileShader(shader);
-            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                console.error(gl.getShaderInfoLog(shader));
-                gl.deleteShader(shader);
-                return null;
-            }
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type); gl.shaderSource(shader, source); gl.compileShader(shader);
             return shader;
         }
-
         const program = gl.createProgram();
-        gl.attachShader(program, loadShader(gl.VERTEX_SHADER, vsSource));
-        gl.attachShader(program, loadShader(gl.FRAGMENT_SHADER, fsSource));
-        gl.linkProgram(program);
-        gl.useProgram(program);
+        gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program); gl.useProgram(program);
 
-        // Geometría del canvas
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        const buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
         const posLoc = gl.getAttribLocation(program, 'position');
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(posLoc); gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-        // Uniforms Locations
         const uRes = gl.getUniformLocation(program, 'u_resolution');
         const uTime = gl.getUniformLocation(program, 'u_time');
-        const uZoom = gl.getUniformLocation(program, 'u_zoom');
-        const uCamPos = gl.getUniformLocation(program, 'u_camPos');
         const uHorizonRadius = gl.getUniformLocation(program, 'u_horizonRadius');
 
+        // --- BUCLE PRINCIPAL DE ANIMACIÓN (TICK RATE) ---
+        initUniverse();
         resize();
 
-        // --- BUCLE CENTRAL DEL MOTOR ---
-        function updateAndRender(time) {
-            time *= 0.001; // Tiempo en segundos
+        function loop(time) {
+            let shaderTime = time * 0.001;
 
-            // Interpolaciones suaves (Lerp) para la cámara y el zoom
-            zoom += (targetZoom - zoom) * 0.1;
-            camX += (targetCamX - camX) * 0.1;
-            camY += (targetCamY - camY) * 0.1;
+            // Interpolación suavizada (Lerp) para fluidez cinemática
+            zoom += (targetZoom - zoom) * 0.08;
+            camX += (targetCamX - camX) * 0.08;
+            camY += (targetCamY - camY) * 0.08;
 
-            // METÁFORA DE JUEGO: El agujero negro traga materia constantemente y crece
-            mass += 0.005; 
-            systemsConsumed = Math.floor((mass - 14.5) * 1.8);
+            // Renderizar fondo espacial de estrellas y sistemas planetarios
+            drawUniverse();
 
-            // CÁLCULOS CIENTÍFICOS REALES
-            // Constante G = 6.674e-11, c = 299792458 m/s. 
-            // Radio de Schwarzschild aproximado: R = 2.95 * Masa en soles (en kilómetros)
-            const schwarzschildRadiusKm = mass * 2.953;
-            // Para el motor gráfico escalamos el radio visualmente de forma matemática
-            const visualHorizonRadius = 0.05 + (mass * 0.001);
-
-            // Actualización del HUD en tiempo real
-            document.getElementById('hud-mass').innerText = mass.toFixed(2);
-            document.getElementById('hud-radius').innerText = schwarzschildRadiusKm.toFixed(2);
-            document.getElementById('hud-consumed').innerText = systemsConsumed;
-            document.getElementById('hud-zoom').innerText = zoom.toFixed(4);
-            document.getElementById('hud-camx').innerText = camX.toFixed(2);
-            document.getElementById('hud-camy').innerText = camY.toFixed(2);
-
-            // Enviar datos dinámicos a la tarjeta gráfica
-            gl.uniform2f(uRes, canvas.width, canvas.height);
-            gl.uniform1f(uTime, time);
-            gl.uniform1f(uZoom, zoom);
-            gl.uniform2f(uCamPos, camX, camY);
-            gl.uniform1f(uHorizonRadius, visualHorizonRadius);
-
+            // Renderizar Agujero negro arriba centrado en la pantalla
+            // (La simulación hace que la cámara se desplace por el universo, manteniendo el cuerpo celeste masivo en el punto focal)
+            let visualRadius = 0.05 + (mass * 0.0015) * Math.min(zoom, 2.5);
+            gl.uniform2f(uRes, webglCanvas.width, webglCanvas.height);
+            gl.uniform1f(uTime, shaderTime);
+            gl.uniform1f(uHorizonRadius, visualRadius);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
-            requestAnimationFrame(updateAndRender);
-        }
 
-        requestAnimationFrame(updateAndRender);
+            // Actualizar HUD científico
+            document.getElementById('hud-mass').innerText = mass.toFixed(2);
+            document.getElementById('hud-radius').innerText = (mass * 2.953).toFixed(2);
+            document.getElementById('hud-consumed').innerText = consumedCount;
+            document.getElementById('hud-zoom').innerText = zoom.toFixed(2);
+            document.getElementById('hud-camx').innerText = Math.floor(camX);
+            document.getElementById('hud-camy').innerText = Math.floor(camY);
+
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
     </script>
 </body>
 </html>
